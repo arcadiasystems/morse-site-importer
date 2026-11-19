@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# A stand-in for the Morse CLI, used only by test/recipe/check.sh. It sends
+# nothing. It records every call and answers `entry add` with JSON of the
+# shape @arcadiasystems/morse-cli 0.14.0 prints: the fields of the SDK's
+# AddEntryFromBytesResult, with the network stamped first and viewUrl last,
+# bigints as strings, indented by two spaces.
+#
+#   STANDIN_DIR      where the call log (calls.log) and the entry counter live
+#   STANDIN_FAIL_AT  make the nth `entry add` fail as a network error would
+set -euo pipefail
+
+: "${STANDIN_DIR:?STANDIN_DIR must name a directory}"
+printf '%s\n' "$*" >> "$STANDIN_DIR/calls.log"
+
+usage_error() {
+  echo "error: $1" >&2
+  exit 2
+}
+
+json=false
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --json) json=true; shift ;;
+    -q|--quiet|-y|--yes) shift ;;
+    -*) usage_error "unknown option '$1'" ;;
+    *) break ;;
+  esac
+done
+
+[ "${1:-}" = entry ] && [ "${2:-}" = add ] || usage_error "the stand-in only knows 'entry add'"
+shift 2
+
+name=
+file=
+epochs=3
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -f|--file) file=${2:?}; shift 2 ;;
+    --epochs) epochs=${2:?}; shift 2 ;;
+    -*) usage_error "unknown option '$1'" ;;
+    *) [ -z "$name" ] || usage_error "too many arguments"; name=$1; shift ;;
+  esac
+done
+
+[ -n "$name" ] || usage_error "missing required argument 'name'"
+[ -n "$file" ] || usage_error "provide content with --file <path> or --stdin"
+[ -f "$file" ] || usage_error "cannot read $file"
+case "$epochs" in ''|*[!0-9]*|0) usage_error "--epochs must be a positive integer" ;; esac
+
+attempts_file=$STANDIN_DIR/attempts
+attempts=$(( $(cat "$attempts_file" 2>/dev/null || echo 0) + 1 ))
+echo "$attempts" > "$attempts_file"
+if [ "${STANDIN_FAIL_AT:-}" = "$attempts" ]; then
+  echo "error: could not reach the network" >&2
+  exit 5
+fi
+
+next_file=$STANDIN_DIR/next-entry-id
+entry_id=$(cat "$next_file" 2>/dev/null || echo 0)
+echo $((entry_id + 1)) > "$next_file"
+
+if [ "$json" = true ]; then
+  jq -n --argjson entryId "$entry_id" '{
+    network: "testnet",
+    digest: "STANDIN-DIGEST-\($entryId)",
+    gasUsedMist: "0",
+    entryId: $entryId,
+    revisionId: 0,
+    blobObjectId: "0xSTANDIN-BLOB-OBJECT-\($entryId)",
+    blobId: "STANDIN-BLOB-\($entryId)",
+    viewUrl: "https://aggregator.example/v1/blobs/STANDIN-BLOB-\($entryId)"
+  }'
+else
+  echo "Added entry #$entry_id \"$name\". (tx: STANDIN-DIGEST-$entry_id)"
+  echo "  network:      testnet"
+fi
