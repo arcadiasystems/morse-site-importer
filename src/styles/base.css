@@ -1,0 +1,138 @@
+/* Morse product sites: the shared dark base.
+
+   This file is identical in morse-receipts, morse-agents and morse-press. It
+   is written once in morse-receipts and copied verbatim into the other two.
+   Do not edit a copy: change it in morse-receipts and copy it again, so the
+   three never drift.
+
+   Token contract. Every site sets these in its own src/styles/tokens.css,
+   loaded before this file:
+
+     --bg         the field                     --bg-rgb     the field, as r,g,b
+     --panel-rgb  solid panels, as r,g,b        --dim        body text
+     --mute       captions                      --acc        the site's colour
+     --acc-rgb    the same, as r,g,b            --lift       labels, tape, numbers
+     --lift-rgb   the same, as r,g,b            --tint-rgb   the palest accent, as r,g,b
+     --em         the emphasised headline clause
+     --on-acc     text on the accent            --ok         live, passed
+     --warn       sample labels
+
+   What is here is what the three designs have in common, rule for rule:
+   reset, .wrap, .lab, .thin, .lead, .btn, .pill, .glass, .sec, .sec__head,
+   .glow, the nav, the hero frame, .status with its tape, .band, .faq, .final
+   with .gtile, the footer and .fine. Everything else is a site's own object
+   and lives in src/styles/<site>.css, loaded after this file.
+
+   Cascade note for the site stylesheets: this file ends with the shared
+   responsive rules. A site rule outside a media query that sets a property
+   this file changes at 860px (for example .hero padding or .hero__grid
+   columns) wins over it, so that site restates the 860px value in its own
+   media block. */
+
+:root{--text:#F4F2EC;
+  --line:rgba(255,255,255,.09);--line-2:rgba(255,255,255,.17);--glass:rgba(255,255,255,.04);--glass-2:rgba(255,255,255,.07);
+  --disp:'Bricolage Grotesque',system-ui,sans-serif;--sans:'Instrument Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;--max:1200px;--gut:32px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}h1,h2,h3,p,ul,ol{margin:0}ul,ol{padding:0;list-style:none}button{font:inherit;color:inherit}svg{display:block}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--gut)}
+.lab{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--lift)}
+.lab::before{content:"// "}
+.thin{font-family:var(--disp);font-weight:400;letter-spacing:-.035em;line-height:1}
+.thin em{font-style:normal;color:var(--em)}
+h2.thin{font-size:clamp(34px,4.6vw,62px)}
+.lead{font-size:18px;color:var(--dim);max-width:54ch}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 22px;border-radius:999px;font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;white-space:nowrap;border:1px solid transparent;cursor:pointer;transition:transform .15s,background .15s,border-color .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn-bone{background:var(--text);color:var(--bg)}
+.btn-ghost{border-color:var(--line-2);color:var(--text);background:rgba(255,255,255,.02)}
+.btn-ghost:hover{border-color:rgba(255,255,255,.4)}
+.btn-acc{background:var(--acc);color:var(--on-acc)}
+.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;border-radius:999px;padding:5px 10px;border:1px solid var(--line-2);color:var(--dim);white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:rgba(111,211,166,.4);background:rgba(111,211,166,.08)}
+.pill.sample{color:var(--warn);border-color:rgba(240,201,106,.4);background:rgba(240,201,106,.07)}
+.pill.lift{color:var(--lift);border-color:rgba(var(--lift-rgb),.45);background:rgba(var(--lift-rgb),.09)}
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:22px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+section{position:relative}
+.sec{padding:128px 0;overflow:hidden}
+.sec__head{display:flex;flex-direction:column;gap:18px;margin-bottom:48px}
+.sec__head.c{align-items:center;text-align:center}
+.glow{position:absolute;pointer-events:none;border-radius:50%;filter:blur(90px);background:var(--acc);opacity:.30}
+
+/* nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;background:linear-gradient(180deg,rgba(var(--bg-rgb),.92),rgba(var(--bg-rgb),0))}
+.nav .wrap{height:76px;display:flex;align-items:center;gap:28px}
+.brand{display:inline-flex;align-items:center;gap:11px;font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:-.03em;line-height:.92}
+.brand .wm{display:flex;flex-direction:column}.brand em{font-style:normal;color:var(--lift)}
+.nav__links{display:flex;gap:26px;font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.nav__links a{min-height:44px;display:inline-flex;align-items:center}
+.nav__links a:hover{color:var(--text)}
+.nav__r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.nav .btn{min-height:42px;padding:0 18px;font-size:11.5px}
+
+/* hero */
+.hero{min-height:100svh;padding:150px 0 90px;display:flex;align-items:center;overflow:hidden}
+.hero .glow.a{width:620px;height:620px;left:-240px;top:-160px}
+.hero .glow.b{width:520px;height:520px;right:-120px;bottom:-220px;opacity:.5}
+.hero__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center;position:relative}
+.hero__l{display:flex;flex-direction:column;gap:26px;align-items:flex-start;min-width:0}
+.status{display:inline-flex;align-items:stretch;height:36px;border-radius:10px;border:1px solid var(--line-2);background:rgba(var(--panel-rgb),.7);font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--dim);white-space:nowrap;overflow:hidden}
+.status>span{display:inline-flex;align-items:center;padding:0 12px;border-left:1px solid var(--line)}
+.status>span:first-child{border-left:0;gap:9px;color:var(--ok)}
+.status i.lamp{position:relative;width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px rgba(111,211,166,.9)}
+.status i.lamp::after{content:"";position:absolute;inset:-1px;border-radius:50%;border:1.5px solid var(--ok);animation:ping 2s ease-out infinite}
+@keyframes ping{from{transform:scale(1);opacity:.9}to{transform:scale(3.4);opacity:0}}
+.status .net{color:var(--text)}
+.status>.tp{width:90px;padding:0;overflow:hidden;color:var(--lift);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent);mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent)}
+.run{display:inline-flex;align-items:center;flex-shrink:0;animation:tape 9s linear infinite}
+.run i{display:block;flex-shrink:0;width:5px;height:5px;margin-right:3px;border-radius:50%;background:currentColor}
+.run i.d{width:13px;border-radius:3px}.run i.s{width:6px;background:none}.run i.w{width:20px;background:none}
+@keyframes tape{to{transform:translateX(-50%)}}
+.hero h1{font-size:clamp(46px,6.4vw,92px)}
+.hero p.sub{font-size:clamp(17px,1.5vw,20px);color:var(--dim);max-width:520px}
+.hero__cta{display:flex;gap:12px;flex-wrap:wrap}
+.hero__fine{font-size:14.5px;color:var(--mute)}
+.hero__fine a{color:var(--text);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--lift)}
+/* developers band, faq, final, footer */
+.band{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:20px 32px;align-items:center;padding:30px 34px}
+.band b{font-family:var(--disp);font-weight:500;font-size:26px;letter-spacing:-.03em;display:block;line-height:1.08}
+.band p{color:var(--dim);font-size:16px;margin-top:6px;max-width:60ch}
+.runs{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.faq{border-top:1px solid var(--line);max-width:900px}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:16px;align-items:center;padding:24px 2px;min-height:52px;font-family:var(--disp);font-weight:400;font-size:24px;letter-spacing:-.025em}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-family:var(--mono);font-size:22px;color:var(--lift);flex-shrink:0}
+.faq details[open] summary::after{content:"\2212"}
+.faq p{font-size:16.5px;color:var(--dim);padding:0 2px 26px;max-width:70ch}
+.final{padding:150px 0 160px;text-align:center;overflow:hidden}
+.final .glow{width:1000px;height:340px;left:50%;bottom:-200px;transform:translateX(-50%);opacity:.6}
+.final h2{font-size:clamp(46px,7vw,104px)}
+.final .hero__cta{justify-content:center;margin-top:36px}
+.gtile{position:absolute;width:128px;height:128px;border-radius:30px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.2);background:linear-gradient(145deg,rgba(var(--lift-rgb),.3),rgba(var(--acc-rgb),.1) 46%,rgba(255,255,255,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.36),0 30px 80px rgba(var(--acc-rgb),.38);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.gtile.l{left:7%;top:26%;transform:rotate(-14deg)}.gtile.r{right:8%;top:44%;transform:rotate(12deg);width:104px;height:104px;border-radius:26px}
+.foot{border-top:1px solid var(--line);padding:34px 0 44px}
+.foot .wrap{display:flex;justify-content:space-between;gap:20px 40px;flex-wrap:wrap;align-items:center}
+.foot__links{display:flex;gap:6px 24px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.foot__links a{min-height:40px;display:inline-flex;align-items:center}
+.foot__links a:hover{color:var(--text)}
+.foot p{font-size:13.5px;color:var(--mute);width:100%}
+.fine{font-size:13.5px;color:var(--mute);margin-top:18px}
+
+/* A section that follows another without top padding. The scroll margin
+   keeps its heading clear of the fixed nav after a nav jump. */
+.sec.flush{padding-top:0;scroll-margin-top:112px}
+
+@media (prefers-reduced-motion:reduce){.run,.status i.lamp::after{animation:none}}
+@media (max-width:1080px){.nav__links{display:none}}
+@media (max-width:860px){
+  :root{--gut:20px}
+  .sec{padding:84px 0}.sec__head{margin-bottom:32px}
+  .nav .btn-ghost{display:none}
+  .hero{padding:118px 0 64px}
+  .hero__grid{grid-template-columns:1fr;gap:40px}
+  .hero__cta{width:100%}.hero__cta .btn{flex:1 1 100%}
+  .status>span:nth-child(3){display:none}
+  .final{padding:110px 0 120px}.gtile{display:none}
+}
