@@ -1,0 +1,13 @@
+<!-- Source for public/apple-touch-icon.png and public/icon-maskable-512.png
+     (`npm run icons`). The favicon drawn full-bleed: iOS and Android apply
+     their own corner mask, so no radius here, and the mark stays inside the
+     middle four fifths. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#0A0A06"/>
+  <g transform="translate(21 18.76) scale(0.58)">
+    <path d="M8 60 V18 H36 V60 H64 V18 H92 V60" fill="none" stroke="#F4F2EC" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="8" y="80" width="24" height="14" rx="7" fill="#FFE62E"/>
+    <rect x="38" y="80" width="24" height="14" rx="7" fill="#FFE62E"/>
+    <rect x="68" y="80" width="24" height="14" rx="7" fill="#FFE62E"/>
+  </g>
+</svg>

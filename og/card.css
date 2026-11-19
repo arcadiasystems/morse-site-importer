@@ -1,0 +1,21 @@
+/* The share image frame: 1200×630, the size and margins of the Morse landing
+   card. Loaded after the site's own stylesheets, so the tokens, .thin, .brand
+   and .glow are the site's. The same file in all three product sites. */
+
+html,body{width:1200px;height:630px;overflow:hidden}
+.og{position:relative;width:1200px;height:630px;padding:60px 72px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:var(--bg)}
+.og>*{position:relative}
+.og>.glow{position:absolute}
+.og .glow.a{width:620px;height:620px;left:-300px;top:-330px}
+.og .glow.b{width:520px;height:520px;right:-120px;bottom:-260px}
+
+/* The object sits on the right and may run off the card. The shade keeps the
+   field behind the headline quiet where the object's glow reaches it. */
+.og__object{position:absolute;left:640px;top:0;width:560px;height:630px}
+.og__shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(var(--bg-rgb),.55) 0,rgba(var(--bg-rgb),.4) 46%,rgba(var(--bg-rgb),0) 62%);pointer-events:none}
+
+.og__top{display:flex;align-items:center;justify-content:space-between}
+.og .brand{gap:16px;min-height:0}
+.og__domain{font-family:var(--mono);font-size:20px;font-weight:500;letter-spacing:.04em;color:var(--dim)}
+.og__headline{font-size:78px;max-width:640px}
+.og__tagline{font-size:27px;line-height:1.2;color:var(--dim);max-width:600px}

@@ -1,0 +1,7 @@
+/* Morse Site Importer: the Marker Yellow palette. The first line is the token
+   contract of base.css; the second is this site's own. Text on yellow is
+   always dark (--on-acc). --warn is set for the contract and not used: on
+   this site an amber label would read as a second yellow. */
+:root{--bg:#0A0A06;--bg-rgb:10,10,6;--panel-rgb:17,16,9;--dim:#C3C1B2;--mute:#999684;--acc:#FFE62E;--acc-rgb:255,230,46;--lift:#FFF09A;--lift-rgb:255,240,154;--tint-rgb:255,250,214;--em:var(--acc);--on-acc:#0A0A06;--ok:#6FD3A6;--warn:#F0C96A;
+  /* sibling colours, used only on the sibling names and lockups */
+  --press:#FF5A36;--uploader:#7D8BFF;--publisher:#FF3EA5}

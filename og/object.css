@@ -1,0 +1,18 @@
+/* Morse Site Importer: the hero's loom on the share image. The folder, the
+   import.sh frame and the three entry tiles sit on the right; the map runs
+   off the lower edge. The image is taken with reduced motion, which rests
+   the loom with every tile lit, so this file sets the frame the hero shows
+   mid-loop instead: entries 0 and 1 landed, the third segment still crossing.
+   The "Example" label moves to the left of the map, inside the square centre
+   crop. */
+
+.og .glow{opacity:.13}
+.og .loom{position:absolute;left:36px;top:150px;width:500px;height:560px}
+
+.og .rows li:nth-child(3) .seg{opacity:1;transform:translateX(64px)}
+.og .rows li:nth-child(3) .echip::before{opacity:0}
+.og .rows li:nth-child(3) .echip>small{color:var(--dim)}
+.og .rows li:nth-child(3) .echip>b{color:var(--text)}
+.og .mapf li:nth-child(3){opacity:.6}
+
+.og .loom .pill.sample{right:auto;left:34px;bottom:auto;top:354px;font-size:12px}
