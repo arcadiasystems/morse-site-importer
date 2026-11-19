@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morse Site Importer: one site in, one entry per post</title>
+<meta name="description" content="A recipe for the Morse CLI, bash and jq: publish a folder of Markdown from Hugo, Astro, Jekyll or Obsidian as one Morse entry per post, safe to run again, with a CI job that publishes on push.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ===== tokens: Morse Site Importer, the Marker Yellow palette (src/styles/tokens.css) ===== */
+:root{--bg:#0A0A06;--bg-rgb:10,10,6;--panel-rgb:17,16,9;--dim:#C3C1B2;--mute:#999684;--acc:#FFE62E;--acc-rgb:255,230,46;--lift:#FFF09A;--lift-rgb:255,240,154;--tint-rgb:255,250,214;--em:var(--acc);--on-acc:#0A0A06;--ok:#6FD3A6;--warn:#F0C96A}
+
+/* ===== shared base: src/styles/base.css from arcadiasystems/morse-receipts, inlined verbatim. Do not edit. ===== */
+/* Morse product sites: the shared dark base.
+
+   This file is identical in morse-receipts, morse-agents and morse-press. It
+   is written once in morse-receipts and copied verbatim into the other two.
+   Do not edit a copy: change it in morse-receipts and copy it again, so the
+   three never drift.
+
+   Token contract. Every site sets these in its own src/styles/tokens.css,
+   loaded before this file:
+
+     --bg         the field                     --bg-rgb     the field, as r,g,b
+     --panel-rgb  solid panels, as r,g,b        --dim        body text
+     --mute       captions                      --acc        the site's colour
+     --acc-rgb    the same, as r,g,b            --lift       labels, tape, numbers
+     --lift-rgb   the same, as r,g,b            --tint-rgb   the palest accent, as r,g,b
+     --em         the emphasised headline clause
+     --on-acc     text on the accent            --ok         live, passed
+     --warn       sample labels
+
+   What is here is what the three designs have in common, rule for rule:
+   reset, .wrap, .lab, .thin, .lead, .btn, .pill, .glass, .sec, .sec__head,
+   .glow, the nav, the hero frame, .status with its tape, .band, .faq, .final
+   with .gtile, the footer and .fine. Everything else is a site's own object
+   and lives in src/styles/<site>.css, loaded after this file.
+
+   Cascade note for the site stylesheets: this file ends with the shared
+   responsive rules. A site rule outside a media query that sets a property
+   this file changes at 860px (for example .hero padding or .hero__grid
+   columns) wins over it, so that site restates the 860px value in its own
+   media block. */
+
+:root{--text:#F4F2EC;
+  --line:rgba(255,255,255,.09);--line-2:rgba(255,255,255,.17);--glass:rgba(255,255,255,.04);--glass-2:rgba(255,255,255,.07);
+  --disp:'Bricolage Grotesque',system-ui,sans-serif;--sans:'Instrument Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;--max:1200px;--gut:32px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}h1,h2,h3,p,ul,ol{margin:0}ul,ol{padding:0;list-style:none}button{font:inherit;color:inherit}svg{display:block}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--gut)}
+.lab{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--lift)}
+.lab::before{content:"// "}
+.thin{font-family:var(--disp);font-weight:400;letter-spacing:-.035em;line-height:1}
+.thin em{font-style:normal;color:var(--em)}
+h2.thin{font-size:clamp(34px,4.6vw,62px)}
+.lead{font-size:18px;color:var(--dim);max-width:54ch}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 22px;border-radius:999px;font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;white-space:nowrap;border:1px solid transparent;cursor:pointer;transition:transform .15s,background .15s,border-color .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn-bone{background:var(--text);color:var(--bg)}
+.btn-ghost{border-color:var(--line-2);color:var(--text);background:rgba(255,255,255,.02)}
+.btn-ghost:hover{border-color:rgba(255,255,255,.4)}
+.btn-acc{background:var(--acc);color:var(--on-acc)}
+.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;border-radius:999px;padding:5px 10px;border:1px solid var(--line-2);color:var(--dim);white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:rgba(111,211,166,.4);background:rgba(111,211,166,.08)}
+.pill.sample{color:var(--warn);border-color:rgba(240,201,106,.4);background:rgba(240,201,106,.07)}
+.pill.lift{color:var(--lift);border-color:rgba(var(--lift-rgb),.45);background:rgba(var(--lift-rgb),.09)}
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:22px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+section{position:relative}
+.sec{padding:128px 0;overflow:hidden}
+.sec__head{display:flex;flex-direction:column;gap:18px;margin-bottom:48px}
+.sec__head.c{align-items:center;text-align:center}
+.glow{position:absolute;pointer-events:none;border-radius:50%;filter:blur(90px);background:var(--acc);opacity:.30}
+
+/* nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;background:linear-gradient(180deg,rgba(var(--bg-rgb),.92),rgba(var(--bg-rgb),0))}
+.nav .wrap{height:76px;display:flex;align-items:center;gap:28px}
+.brand{display:inline-flex;align-items:center;gap:11px;font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:-.03em;line-height:.92}
+.brand .wm{display:flex;flex-direction:column}.brand em{font-style:normal;color:var(--lift)}
+.nav__links{display:flex;gap:26px;font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.nav__links a{min-height:44px;display:inline-flex;align-items:center}
+.nav__links a:hover{color:var(--text)}
+.nav__r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.nav .btn{min-height:42px;padding:0 18px;font-size:11.5px}
+
+/* hero */
+.hero{min-height:100svh;padding:150px 0 90px;display:flex;align-items:center;overflow:hidden}
+.hero .glow.a{width:620px;height:620px;left:-240px;top:-160px}
+.hero .glow.b{width:520px;height:520px;right:-120px;bottom:-220px;opacity:.5}
+.hero__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center;position:relative}
+.hero__l{display:flex;flex-direction:column;gap:26px;align-items:flex-start;min-width:0}
+.status{display:inline-flex;align-items:stretch;height:36px;border-radius:10px;border:1px solid var(--line-2);background:rgba(var(--panel-rgb),.7);font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--dim);white-space:nowrap;overflow:hidden}
+.status>span{display:inline-flex;align-items:center;padding:0 12px;border-left:1px solid var(--line)}
+.status>span:first-child{border-left:0;gap:9px;color:var(--ok)}
+.status i.lamp{position:relative;width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px rgba(111,211,166,.9)}
+.status i.lamp::after{content:"";position:absolute;inset:-1px;border-radius:50%;border:1.5px solid var(--ok);animation:ping 2s ease-out infinite}
+@keyframes ping{from{transform:scale(1);opacity:.9}to{transform:scale(3.4);opacity:0}}
+.status .net{color:var(--text)}
+.status>.tp{width:90px;padding:0;overflow:hidden;color:var(--lift);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent);mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent)}
+.run{display:inline-flex;align-items:center;flex-shrink:0;animation:tape 9s linear infinite}
+.run i{display:block;flex-shrink:0;width:5px;height:5px;margin-right:3px;border-radius:50%;background:currentColor}
+.run i.d{width:13px;border-radius:3px}.run i.s{width:6px;background:none}.run i.w{width:20px;background:none}
+@keyframes tape{to{transform:translateX(-50%)}}
+.hero h1{font-size:clamp(46px,6.4vw,92px)}
+.hero p.sub{font-size:clamp(17px,1.5vw,20px);color:var(--dim);max-width:520px}
+.hero__cta{display:flex;gap:12px;flex-wrap:wrap}
+.hero__fine{font-size:14.5px;color:var(--mute)}
+.hero__fine a{color:var(--text);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--lift)}
+/* developers band, faq, final, footer */
+.band{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:20px 32px;align-items:center;padding:30px 34px}
+.band b{font-family:var(--disp);font-weight:500;font-size:26px;letter-spacing:-.03em;display:block;line-height:1.08}
+.band p{color:var(--dim);font-size:16px;margin-top:6px;max-width:60ch}
+.runs{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.faq{border-top:1px solid var(--line);max-width:900px}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:16px;align-items:center;padding:24px 2px;min-height:52px;font-family:var(--disp);font-weight:400;font-size:24px;letter-spacing:-.025em}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-family:var(--mono);font-size:22px;color:var(--lift);flex-shrink:0}
+.faq details[open] summary::after{content:"\2212"}
+.faq p{font-size:16.5px;color:var(--dim);padding:0 2px 26px;max-width:70ch}
+.final{padding:150px 0 160px;text-align:center;overflow:hidden}
+.final .glow{width:1000px;height:340px;left:50%;bottom:-200px;transform:translateX(-50%);opacity:.6}
+.final h2{font-size:clamp(46px,7vw,104px)}
+.final .hero__cta{justify-content:center;margin-top:36px}
+.gtile{position:absolute;width:128px;height:128px;border-radius:30px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.2);background:linear-gradient(145deg,rgba(var(--lift-rgb),.3),rgba(var(--acc-rgb),.1) 46%,rgba(255,255,255,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.36),0 30px 80px rgba(var(--acc-rgb),.38);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.gtile.l{left:7%;top:26%;transform:rotate(-14deg)}.gtile.r{right:8%;top:44%;transform:rotate(12deg);width:104px;height:104px;border-radius:26px}
+.foot{border-top:1px solid var(--line);padding:34px 0 44px}
+.foot .wrap{display:flex;justify-content:space-between;gap:20px 40px;flex-wrap:wrap;align-items:center}
+.foot__links{display:flex;gap:6px 24px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.foot__links a{min-height:40px;display:inline-flex;align-items:center}
+.foot__links a:hover{color:var(--text)}
+.foot p{font-size:13.5px;color:var(--mute);width:100%}
+.fine{font-size:13.5px;color:var(--mute);margin-top:18px}
+
+/* A section that follows another without top padding. The scroll margin
+   keeps its heading clear of the fixed nav after a nav jump. */
+.sec.flush{padding-top:0;scroll-margin-top:112px}
+
+@media (prefers-reduced-motion:reduce){.run,.status i.lamp::after{animation:none}}
+@media (max-width:1080px){.nav__links{display:none}}
+@media (max-width:860px){
+  :root{--gut:20px}
+  .sec{padding:84px 0}.sec__head{margin-bottom:32px}
+  .nav .btn-ghost{display:none}
+  .hero{padding:118px 0 64px}
+  .hero__grid{grid-template-columns:1fr;gap:40px}
+  .hero__cta{width:100%}.hero__cta .btn{flex:1 1 100%}
+  .status>span:nth-child(3){display:none}
+  .final{padding:110px 0 120px}.gtile{display:none}
+}
+
+/* ===== site block: Morse Site Importer (src/styles/site-importer.css). Everything below is this site's own. ===== */
+/* sibling colours, used only on the sibling names and lockups */
+:root{--press:#FF5A36;--uploader:#7D8BFF;--publisher:#FF3EA5}
+:focus-visible{outline:2px solid var(--lift);outline-offset:3px;border-radius:6px}
+.glow{opacity:.13}
+/* On this site yellow is the accent, so the amber of the family's sample label
+   would read as a second yellow. Example labels are neutral and dashed here. */
+.pill.sample{color:var(--dim);border:1px dashed var(--line-2);background:transparent}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:start}
+code,pre{font-family:var(--mono)}
+.hero__grid{width:100%;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr)}
+.hero h1{font-size:clamp(46px,5.15vw,74px)}
+.hero .glow.b{width:420px;height:420px;right:-140px;bottom:-250px}
+.fine{font-size:13.5px;color:var(--mute);margin-top:18px}
+.fine a,.lead a,.faq p a,.notes a,.limits a,.cikey p a{color:var(--text);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--lift)}
+
+/* hero: the loom. Three files in, three entries out, and the map that remembers */
+.loom{position:relative;height:560px;min-width:0}
+.loom__in{position:absolute;right:0;top:0;width:500px;height:560px;perspective:1500px;transform-origin:100% 0}
+.mach{position:absolute;left:0;top:26px;width:500px;height:330px;transform-style:preserve-3d;transform:rotateY(-19deg) rotateX(9deg) rotateZ(1.5deg);transform-origin:55% 50%}
+.fold{position:absolute;left:0;top:34px;width:204px;height:286px;border-radius:0 16px 16px 16px;border:1px solid var(--line-2);background:linear-gradient(170deg,rgba(var(--lift-rgb),.13),rgba(255,255,255,.03) 60%);box-shadow:-30px 40px 80px rgba(0,0,0,.55)}
+.fold__tab{position:absolute;left:-1px;top:-31px;height:31px;padding:0 14px;display:flex;align-items:center;border-radius:11px 11px 0 0;background:var(--acc);color:var(--on-acc);font-family:var(--mono);font-size:12px;font-weight:500}
+.rows{position:absolute;left:0;top:56px;width:500px;display:flex;flex-direction:column;gap:16px;transform-style:preserve-3d}
+.rows li{display:grid;grid-template-columns:204px minmax(0,1fr) 140px;align-items:center;height:72px;transform-style:preserve-3d}
+.fchip{margin:0 14px;height:56px;padding:0 14px;display:flex;align-items:center;border-radius:12px;background:rgba(var(--panel-rgb),.95);border:1px solid var(--line-2);font-family:var(--mono);font-size:13.5px;white-space:nowrap}
+.fchip small{font-size:13.5px;color:var(--mute)}
+.trk{position:relative;height:14px;--run:130px;background:repeating-linear-gradient(90deg,var(--line-2) 0 6px,transparent 6px 12px) 0 6px/100% 2px no-repeat}
+.seg{position:absolute;left:0;top:0;width:26px;height:14px;border-radius:7px;background:var(--acc);box-shadow:0 0 22px rgba(var(--acc-rgb),.9);opacity:0}
+.rows li:nth-child(1) .seg{animation:g1 10s cubic-bezier(.5,0,.3,1) infinite}
+.rows li:nth-child(2) .seg{animation:g2 10s cubic-bezier(.5,0,.3,1) infinite}
+.rows li:nth-child(3) .seg{animation:g3 10s cubic-bezier(.5,0,.3,1) infinite}
+@keyframes g1{0%,8%{transform:translateX(0);opacity:0}10%{opacity:1}20%{transform:translateX(var(--run));opacity:1}23%,100%{transform:translateX(var(--run));opacity:0}}
+@keyframes g2{0%,30%{transform:translateX(0);opacity:0}32%{opacity:1}42%{transform:translateX(var(--run));opacity:1}45%,100%{transform:translateX(var(--run));opacity:0}}
+@keyframes g3{0%,52%{transform:translateX(0);opacity:0}54%{opacity:1}64%{transform:translateX(var(--run));opacity:1}67%,100%{transform:translateX(var(--run));opacity:0}}
+.echip{position:relative;height:72px;border-radius:16px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;border:1px solid rgba(var(--acc-rgb),.5);background:rgba(var(--panel-rgb),.96);transform:translateZ(46px);box-shadow:-9px 11px 0 rgba(var(--acc-rgb),.16),-30px 40px 60px rgba(0,0,0,.5);overflow:hidden}
+.echip::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgb(var(--tint-rgb)) 0,var(--acc) 42%);opacity:0}
+.echip small,.echip b{position:relative}
+.echip small{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--dim)}
+.echip b{font-family:var(--disp);font-weight:500;font-size:38px;letter-spacing:-.03em;line-height:1}
+.rows li:nth-child(1) .echip::before{animation:e1 10s linear infinite}.rows li:nth-child(2) .echip::before{animation:e2 10s linear infinite}.rows li:nth-child(3) .echip::before{animation:e3 10s linear infinite}
+.rows li:nth-child(1) .echip>*{animation:t1 10s linear infinite}.rows li:nth-child(2) .echip>*{animation:t2 10s linear infinite}.rows li:nth-child(3) .echip>*{animation:t3 10s linear infinite}
+@keyframes e1{0%,20%{opacity:0}23%,95%{opacity:1}100%{opacity:0}}@keyframes e2{0%,42%{opacity:0}45%,95%{opacity:1}100%{opacity:0}}@keyframes e3{0%,64%{opacity:0}67%,95%{opacity:1}100%{opacity:0}}
+@keyframes t1{0%,20%{color:inherit}23%,95%{color:var(--on-acc)}100%{color:inherit}}@keyframes t2{0%,42%{color:inherit}45%,95%{color:var(--on-acc)}100%{color:inherit}}@keyframes t3{0%,64%{color:inherit}67%,95%{color:var(--on-acc)}100%{color:inherit}}
+.gate{position:absolute;left:258px;top:38px;width:36px;height:286px;border-radius:12px;border:1.5px solid var(--acc);background:linear-gradient(180deg,rgba(var(--acc-rgb),.16),rgba(var(--acc-rgb),.03));box-shadow:0 0 44px rgba(var(--acc-rgb),.35),inset 0 0 18px rgba(var(--acc-rgb),.2);transform:translateZ(22px)}
+.gate small{position:absolute;left:50%;top:-26px;transform:translateX(-50%);font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;color:var(--lift);white-space:nowrap}
+.mapf{position:absolute;left:34px;bottom:0;width:318px;padding:14px 16px;border-radius:16px;background:rgba(var(--panel-rgb),.92);border:1px solid var(--line-2);box-shadow:0 30px 70px rgba(0,0,0,.6);z-index:3}
+.mapf__hd{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--mute);padding-bottom:8px;border-bottom:1px solid var(--line)}
+.mapf li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12.5px;opacity:.6}
+.mapf li:last-child{border-bottom:0;padding-bottom:0}
+.mapf li b{font-weight:500;color:var(--lift)}
+.mapf li:nth-child(1){animation:m1 10s linear infinite}.mapf li:nth-child(2){animation:m2 10s linear infinite}.mapf li:nth-child(3){animation:m3 10s linear infinite}
+@keyframes m1{0%,20%{opacity:.6}23%,95%{opacity:1}100%{opacity:.6}}@keyframes m2{0%,42%{opacity:.6}45%,95%{opacity:1}100%{opacity:.6}}@keyframes m3{0%,64%{opacity:.6}67%,95%{opacity:1}100%{opacity:.6}}
+.loom .pill.sample{position:absolute;right:0;bottom:0}
+
+/* why: a drawer of folders */
+.why{padding:120px 0 128px;overflow:hidden}
+.why h2{max-width:920px;margin-top:18px}
+.folders{margin:78px 0 44px;--tw:17.5%}
+.folders li{position:relative;height:50px;border:1px solid var(--line-2);border-bottom:0;border-radius:0 14px 0 0;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));margin-left:calc(var(--i) * 6px);margin-right:calc((4 - var(--i)) * 6px)}
+.folders .tab{position:absolute;left:calc(var(--i) * var(--tw) - 1px);top:-36px;height:36px;width:var(--tw);display:flex;align-items:center;padding:0 16px;border:1px solid var(--line-2);border-bottom:0;border-radius:12px 12px 0 0;background:var(--bg);font-family:var(--disp);font-weight:500;font-size:18px;letter-spacing:-.02em;white-space:nowrap}
+.folders li:first-child{border-radius:0 14px 0 0}
+.folders li.front{height:auto;border-bottom:1px solid var(--line-2);border-radius:0 14px 14px 14px;background:linear-gradient(170deg,rgba(var(--lift-rgb),.12),rgba(255,255,255,.03) 55%);padding:30px 34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:40px;align-items:center}
+.folders li.front .tab{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.folders .glob{font-family:var(--mono);font-size:clamp(18px,2.3vw,30px);color:var(--lift);white-space:nowrap}
+.folders p{font-size:17px;color:var(--dim);max-width:52ch}
+.folders p b{color:var(--text);font-weight:500}
+.why .after{font-size:clamp(24px,2.8vw,38px);max-width:900px;line-height:1.12}
+
+/* script: the whole importer, with its three jobs marked */
+.scr{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);overflow:hidden}
+.scr__code{border-right:1px solid var(--line);background:rgba(var(--bg-rgb),.5);min-width:0}
+.scr__bar{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 20px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:13px}
+.scr__bar i{width:8px;height:8px;border-radius:2px;background:var(--acc)}
+.scr__bar small{font-size:11px;letter-spacing:.1em;color:var(--mute)}
+.copy{margin-left:auto;border:1px solid var(--line-2);background:rgba(255,255,255,.02);border-radius:999px;min-height:40px;padding:0 16px;font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+.copy:hover{border-color:rgba(255,255,255,.4)}
+.scr pre{margin:0;padding:22px 26px 24px 52px;font-size:13px;line-height:1.8;white-space:pre;overflow-x:auto;color:var(--text)}
+.scr pre .c{color:var(--mute)}
+.rg{position:relative;display:block;margin-left:-18px;padding-left:15px;border-left:3px solid var(--acc);background:linear-gradient(90deg,rgba(var(--acc-rgb),.1),rgba(var(--acc-rgb),0) 80%)}
+.rg::before{content:attr(data-n);position:absolute;left:-32px;top:0;font-size:11px;color:var(--lift)}
+.notes{padding:14px 28px}
+.notes li{display:grid;grid-template-columns:36px minmax(0,1fr);gap:4px;padding:16px 0;border-bottom:1px solid var(--line)}
+.notes .n{font-family:var(--mono);font-size:12px;color:var(--lift);padding-top:4px}
+.notes b{font-family:var(--disp);font-weight:500;font-size:20px;letter-spacing:-.02em;display:block;line-height:1.15}
+.notes span.d{font-size:15.5px;color:var(--dim)}
+.runit{margin:18px 0 6px;padding:14px 16px;border-radius:14px;background:rgba(var(--bg-rgb),.75);border:1px solid var(--line);font-size:12.5px;line-height:1.75;white-space:pre;overflow-x:auto}
+.runit .p{color:var(--acc)}.runit .c{color:var(--mute)}
+.notes__lab{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--mute);margin-top:18px;display:block}
+
+/* rerun: three runs, one map */
+.runlog{overflow:hidden;min-width:0}
+.runlog__bar{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap}
+.runlog__tabs{display:flex;gap:6px;flex-wrap:wrap}
+.rtab{border:1px solid transparent;background:transparent;border-radius:999px;min-height:40px;padding:0 16px;font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);cursor:pointer}
+.rtab.is-on{background:var(--text);color:var(--bg)}
+.runlog__bar .pill{margin-left:auto}
+.runlog pre{margin:0;padding:24px 26px;font-size:13px;line-height:1.85;white-space:pre;overflow-x:auto;min-height:196px;color:var(--text)}
+.runlog pre .p{color:var(--acc)}.runlog pre .c{color:var(--mute)}
+.runlog pre .add{color:var(--acc)}.runlog pre .skip{color:var(--mute)}
+.runlog__ft{padding:16px 26px 20px;border-top:1px solid var(--line);font-size:15.5px;color:var(--dim)}
+.runlog__ft[hidden]{display:none}
+.runlog__ft b{color:var(--text);font-weight:500}
+.mapobj{border-radius:22px;border:1px solid var(--line-2);background:rgba(var(--panel-rgb),.86);padding:22px 24px;min-width:0}
+.mapobj__hd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:13px}
+.join li{display:grid;grid-template-columns:minmax(0,1fr) 62px auto;gap:12px;align-items:center;padding:15px 0;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:13.5px}
+.join li>i{display:flex;gap:4px;justify-content:center}
+.join li>i::before,.join li>i::after{content:"";display:block;width:26px;height:10px;border-radius:5px;background:var(--acc)}
+.join li>i::after{width:10px;opacity:.5}
+.join small{font-size:11px;letter-spacing:.14em;color:var(--mute);margin-right:8px}
+.join b{font-family:var(--disp);font-weight:500;font-size:24px;color:var(--lift)}
+.mapobj p{font-size:15.5px;color:var(--dim);margin-top:16px}
+.mapobj p b{color:var(--text);font-weight:500}
+
+/* ci: the pipeline strip */
+.pipebox{position:relative;padding-top:22px}
+.pipebox::before{content:"";position:absolute;left:22px;right:22px;top:6px;height:2px;background:repeating-linear-gradient(90deg,var(--line-2) 0 6px,transparent 6px 12px)}
+.pipebox>i{position:absolute;top:0;left:22px;display:flex;gap:6px;animation:flow 7s linear infinite}
+.pipebox>i b{display:block;width:26px;height:14px;border-radius:7px;background:var(--acc);box-shadow:0 0 18px rgba(var(--acc-rgb),.8)}
+@keyframes flow{from{left:22px}to{left:calc(100% - 112px)}}
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line-2);border-radius:22px;overflow:hidden;background:rgba(var(--panel-rgb),.86)}
+.pipe li{padding:20px 20px 22px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:8px;min-width:0}
+.pipe li:first-child{border-left:0}
+.pipe small{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--mute)}
+.pipe b{font-family:var(--disp);font-weight:500;font-size:21px;letter-spacing:-.02em;line-height:1.1}
+.pipe code{font-size:13.5px;color:var(--text);line-height:1.5}
+.pipe span{font-size:14.5px;color:var(--dim)}
+.pipe li.on{background:linear-gradient(170deg,rgba(var(--acc-rgb),.2),rgba(var(--acc-rgb),.03) 70%);box-shadow:inset 0 3px 0 var(--acc)}
+.pipe li.on small{color:var(--lift)}
+.cirow{margin-top:44px}
+.envt{border-top:1px solid var(--line)}
+.envt li{display:grid;grid-template-columns:minmax(0,1fr);gap:3px;padding:14px 0;border-bottom:1px solid var(--line)}
+.envt code{font-size:13.5px;color:var(--lift)}
+.envt span{font-size:15.5px;color:var(--dim)}
+.envt__hd{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--mute);padding-bottom:12px;display:block}
+.cikey b.h{font-family:var(--disp);font-weight:400;font-size:clamp(24px,2.6vw,34px);letter-spacing:-.03em;line-height:1.08;display:block}
+.cikey p{font-size:16.5px;color:var(--dim);margin-top:14px;max-width:52ch}
+.cikey .ap{color:var(--publisher);text-decoration-color:var(--publisher)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+
+/* pitfalls: four labels */
+.haz{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.haz li{position:relative;border-radius:18px;border:1px solid var(--line-2);background:rgba(var(--panel-rgb),.86);padding:30px 26px 24px;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.haz li::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:repeating-linear-gradient(-45deg,var(--acc) 0 10px,var(--bg) 10px 20px)}
+.haz b{font-family:var(--disp);font-weight:400;font-size:clamp(22px,2.4vw,30px);letter-spacing:-.03em;line-height:1.08}
+.haz dl{margin:0;display:grid;grid-template-columns:104px minmax(0,1fr);gap:10px 12px;border-top:1px solid var(--line);padding-top:14px}
+.haz dt{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);padding-top:4px}
+.haz dd{margin:0;font-size:15.5px;color:var(--dim)}
+.haz dd.do{color:var(--text)}
+
+/* the recipe card */
+.rcardbox{position:relative;display:grid;place-items:center;min-height:400px}
+.rcardbox .glow{width:min(420px,90%);height:360px;opacity:.2}
+.rcard{position:relative;width:min(460px,100%);border-radius:14px;border:1px solid rgba(255,255,255,.24);padding:20px 26px 12px;transform:rotate(2deg);background:rgba(var(--panel-rgb),.92);box-shadow:0 40px 90px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.2)}
+.rcard__hd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:14px;border-bottom:2px solid var(--acc)}
+.rcard__hd b{font-family:var(--disp);font-weight:500;font-size:24px;letter-spacing:-.03em}
+.rcard dl{margin:0}
+.rcard dl div{display:grid;grid-template-columns:104px minmax(0,1fr);gap:10px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.11);align-items:baseline}
+.rcard dl div:last-child{border-bottom:0}
+.rcard dt{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--lift)}
+.rcard dd{margin:0;font-size:15px;line-height:1.4}
+.limits{border-top:1px solid var(--line);margin-top:30px}
+.limits li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;padding:19px 0;border-bottom:1px solid var(--line)}
+.limits .n{font-family:var(--mono);font-size:12px;color:var(--lift);padding-top:5px}
+.limits b{font-family:var(--disp);font-weight:500;font-size:21px;letter-spacing:-.02em;display:block}
+.limits span.d{font-size:16px;color:var(--dim)}
+.bands{display:flex;flex-direction:column;gap:14px}
+
+@media (prefers-reduced-motion:reduce){
+  .seg,.pipebox>i{animation:none!important}.seg{opacity:0}
+  .echip::before{animation:none!important;opacity:1}.echip>small,.echip>b{animation:none!important;color:var(--on-acc)}
+  .mapf li{animation:none!important;opacity:1}
+}
+@media (max-width:1180px){.loom__in{transform:scale(.88)}.loom{height:494px}}
+@media (max-width:1080px){
+  .scr{grid-template-columns:1fr}.scr__code{border-right:0;border-bottom:1px solid var(--line)}
+  .pipe{grid-template-columns:1fr}.pipe li{border-left:0;border-top:1px solid var(--line);display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 14px;padding:16px 20px}
+  .pipe li:first-child{border-top:0}.pipe li small{grid-row:1/3;padding-top:5px}.pipe li.on{box-shadow:inset 3px 0 0 var(--acc)}
+  .pipebox{padding-top:0}.pipebox::before,.pipebox>i{display:none}
+}
+@media (max-width:980px){.loom__in{transform:scale(.74)}.loom{height:416px}}
+@media (max-width:860px){
+  .two{grid-template-columns:1fr;gap:40px}
+  .hero__grid{grid-template-columns:1fr;gap:40px}
+  .loom{height:auto}
+  .loom__in{position:static;width:auto;height:auto;transform:none;perspective:none;display:flex;flex-direction:column;gap:14px}
+  .mach{position:relative;left:auto;top:auto;width:100%;height:auto;transform:none;padding-top:31px}
+  .fold{left:0;top:31px;width:57%;height:calc(100% - 31px);box-shadow:none}
+  .rows{position:relative;top:auto;width:100%;gap:10px;padding:14px 0}
+  .rows li{grid-template-columns:57% minmax(0,1fr) 27%;height:60px}
+  .fchip{margin:0 10px;height:46px;padding:0 10px;font-size:12px}.fchip small{font-size:12px}
+  .trk{--run:calc(100% - 26px)}
+  .seg{animation:none!important;opacity:1;left:50%;margin-left:-13px}
+  .echip{height:60px;transform:none;box-shadow:none;padding:0 12px}.echip b{font-size:28px}
+  .gate{display:none}
+  .mapf{position:relative;left:auto;bottom:auto;width:100%}
+  .loom .pill.sample{position:static;align-self:flex-start}
+  .why{padding:84px 0}
+  .folders{--tw:auto;margin:30px 0 32px;display:flex;flex-wrap:wrap;gap:8px}
+  .folders li{height:auto;border:0;background:none;margin:0}
+  .folders .tab{position:static;width:auto;height:40px;border:1px solid var(--line-2);border-radius:10px;font-size:16px}
+  .folders li.front{flex:1 1 100%;border:1px solid var(--line-2);border-radius:14px;padding:20px;grid-template-columns:1fr;gap:14px;margin-top:6px}
+  .folders li.front .tab{justify-self:start}
+  .scr pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;padding:20px 14px 20px 44px}
+  .rg{margin-left:-14px;padding-left:11px}.rg::before{left:-27px}
+  .notes{padding:8px 14px 16px}
+  .scr .runit{white-space:pre;overflow-wrap:normal;font-size:12px;padding:12px}
+  .rtab{padding:0 10px;letter-spacing:.06em;font-size:11px}.runlog__tabs{gap:2px}
+  .runlog__bar .pill{margin-left:0}
+  .runlog pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;padding:20px;min-height:0}
+  .runlog__ft{padding:16px 20px 18px}
+  .mapobj{padding:20px}
+  .join li{grid-template-columns:minmax(0,1fr) 44px auto;gap:8px;font-size:12.5px}
+  .join li>i::after{display:none}.join small{display:none}
+  .pipe li{grid-template-columns:1fr}.pipe li small{grid-row:auto;padding-top:0}
+  .cirow{margin-top:36px}
+  .haz{grid-template-columns:1fr}
+  .haz li{padding:28px 20px 20px}
+  .haz dl{grid-template-columns:1fr;gap:2px}.haz dd{margin-bottom:8px}
+  .rcardbox{min-height:0;padding:10px 0}
+  .rcard{padding:22px 20px 14px;transform:rotate(1deg)}
+  .rcard dl div{grid-template-columns:86px minmax(0,1fr)}
+  .band{grid-template-columns:1fr;padding:24px 22px}.band .btn{width:100%}
+  .faq summary{font-size:20px}
+}
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="#top" aria-label="Morse Site Importer home"><svg aria-hidden="true" width="30" height="30" viewBox="0 0 100 100"><path d="M8 60 V18 H36 V60 H64 V18 H92 V60" fill="none" stroke="#F4F2EC" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="80" width="24" height="14" rx="7" fill="#FFE62E"/><rect x="38" y="80" width="24" height="14" rx="7" fill="#FFE62E"/><rect x="68" y="80" width="24" height="14" rx="7" fill="#FFE62E"/></svg><span class="wm"><span>morse</span><em>site importer</em></span></a>
+  <nav class="nav__links" aria-label="Primary"><a href="#script">The script</a><a href="#rerun">Run it again</a><a href="#ci">On every push</a><a href="#pitfalls">Pitfalls</a><a href="#faq">Questions</a></nav>
+  <div class="nav__r"><a class="btn btn-ghost" href="https://www.morsecms.xyz/" data-link="morse">Morse <span aria-hidden="true">↗</span></a><a class="btn btn-bone" href="https://docs.morsecms.xyz/import-a-site.html" data-cta="nav">Read the recipe <span aria-hidden="true">↗</span></a></div>
+</div></header>
+
+<main>
+<section class="hero" id="top">
+  <span class="glow a"></span><span class="glow b"></span>
+  <div class="wrap hero__grid">
+    <div class="hero__l">
+      <div class="status"><span><i class="lamp" aria-hidden="true"></i>DOCS RECIPE</span><span class="net">BASH + JQ</span><span>ABOUT 15 MINUTES</span><span class="tp" aria-hidden="true"><span class="run"><i></i><i></i><i class="s"></i><i class="d"></i><i class="d"></i><i class="s"></i><i></i><i class="d"></i><i class="d"></i><i></i><i class="s"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="s"></i><i></i><i class="d"></i><i></i><i class="s"></i><i class="d"></i><i class="s"></i><i></i><i class="s"></i><i></i><i class="d"></i><i></i><i class="w"></i><i></i><i></i><i class="s"></i><i class="d"></i><i class="d"></i><i class="s"></i><i></i><i class="d"></i><i class="d"></i><i></i><i class="s"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="s"></i><i></i><i class="d"></i><i></i><i class="s"></i><i class="d"></i><i class="s"></i><i></i><i class="s"></i><i></i><i class="d"></i><i></i><i class="w"></i></span></span></div>
+      <h1 class="thin">One site in.<br><em>One entry per post.</em></h1>
+      <p class="sub">A recipe for the Morse CLI, bash and jq. Point it at a folder of Markdown from Hugo, Astro, Jekyll or Obsidian. Every file becomes one Morse entry, a map file makes it safe to run again, and a CI job publishes on every push.</p>
+      <div class="hero__cta"><a class="btn btn-acc" href="https://docs.morsecms.xyz/import-a-site.html" data-cta="primary">Read the recipe <span aria-hidden="true">↗</span></a><a class="btn btn-ghost" href="#script" data-cta="secondary">See the script</a></div>
+      <p class="hero__fine">Two recipes in the <a href="https://docs.morsecms.xyz/cookbooks.html">Morse cookbooks</a>, not a hosted importer. Your repo stays the source.</p>
+    </div>
+    <div class="loom" aria-label="Example: three Markdown files, each published as one Morse entry, and the map that remembers which is which">
+      <div class="loom__in">
+        <div class="mach">
+          <div class="fold" aria-hidden="true"><span class="fold__tab">content/posts/</span></div>
+          <div class="gate" aria-hidden="true"><small>import.sh</small></div>
+          <ol class="rows">
+            <li><span class="fchip">hello-world<small>.md</small></span><span class="trk" aria-hidden="true"><i class="seg"></i></span><span class="echip"><small>ENTRY</small><b>0</b></span></li>
+            <li><span class="fchip">second-post<small>.md</small></span><span class="trk" aria-hidden="true"><i class="seg"></i></span><span class="echip"><small>ENTRY</small><b>1</b></span></li>
+            <li><span class="fchip">third-post<small>.md</small></span><span class="trk" aria-hidden="true"><i class="seg"></i></span><span class="echip"><small>ENTRY</small><b>2</b></span></li>
+          </ol>
+        </div>
+        <div class="mapf">
+          <div class="mapf__hd"><span>MORSE-MAP.JSON</span><span>NAME · ENTRY ID</span></div>
+          <ul>
+            <li><span>"hello-world"</span><b>0</b></li>
+            <li><span>"second-post"</span><b>1</b></li>
+            <li><span>"third-post"</span><b>2</b></li>
+          </ul>
+        </div>
+        <span class="pill sample">Example</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="why" id="why">
+  <div class="wrap">
+    <span class="lab">Why it is this small</span>
+    <h2 class="thin">It does not care <em>what built the site.</em></h2>
+    <ol class="folders" aria-label="Where the Markdown can come from">
+      <li style="--i:0"><span class="tab">Hugo</span></li>
+      <li style="--i:1"><span class="tab">Astro</span></li>
+      <li style="--i:2"><span class="tab">Jekyll</span></li>
+      <li style="--i:3"><span class="tab">Obsidian</span></li>
+      <li class="front" style="--i:4"><span class="tab">A plain repo</span><span class="glob">content/posts/*.md</span><p><b>A folder of Markdown files is all the recipe needs.</b> Each file is published as it is, and its name, without the extension, becomes the entry name.</p></li>
+    </ol>
+    <p class="thin after">Morse stores bytes as they are. <em>Front matter goes in untouched, and your renderer keeps working.</em></p>
+  </div>
+</section>
+
+<section class="sec" id="script">
+  <div class="wrap">
+    <div class="sec__head"><span class="lab">The script</span><h2 class="thin">The whole importer<br><em>fits on one screen.</em></h2><p class="lead">No package to install beyond the CLI and jq. Read it once and you know everything it will do to your publication. It does three jobs, marked in the margin.</p></div>
+    <div class="glass scr" data-copybox>
+      <div class="scr__code">
+        <div class="scr__bar"><i aria-hidden="true"></i>import.sh<small>FROM THE RECIPE</small><button class="copy" type="button" data-copy aria-live="polite">Copy</button></div>
+<pre>#!/usr/bin/env bash
+set -euo pipefail
+MAP=morse-map.json
+EPOCHS=${EPOCHS:-30}
+[ -f "$MAP" ] || echo '{}' &gt; "$MAP"
+
+for f in content/posts/*.md; do
+  name=$(basename "$f" .md)
+<span class="rg" data-n="01">  if jq -e --arg n "$name" '.[$n]' "$MAP" \
+      &gt;/dev/null; then
+    echo "skip  $name (already published)"; continue
+  fi
+</span><span class="rg" data-n="02">  echo "add   $name"
+  out=$(morse --json -q entry add "$name" \
+    --file "$f" --epochs "$EPOCHS")
+</span><span class="rg" data-n="03">  id=$(echo "$out" | jq -r '.entryId')
+  tmp=$(mktemp)
+  jq --arg n "$name" --arg id "$id" \
+    '.[$n] = {entryId: ($id|tonumber), file: $n}' \
+    "$MAP" &gt; "$tmp" &amp;&amp; mv "$tmp" "$MAP"
+</span>done
+echo "done, $(jq length "$MAP") entries in $MAP"</pre>
+      </div>
+      <div class="notes">
+        <ul>
+          <li><span class="n">01</span><div><b>Skip what the map already has.</b><span class="d">A file whose name is in the map was published on an earlier run, so it is left alone.</span></div></li>
+          <li><span class="n">02</span><div><b>One file, one entry.</b><span class="d">The content goes to Walrus and the record to Sui. Each <code>entry add</code> signs two transactions.</span></div></li>
+          <li><span class="n">03</span><div><b>Write the id back.</b><span class="d">The entry id returned by the CLI is saved against the filename before the next file starts.</span></div></li>
+        </ul>
+        <span class="notes__lab">COUNT FIRST, THEN RUN</span>
+<pre class="runit"><span class="c"># how many files, and how big</span>
+<span class="p">$</span> ls content/posts/*.md | wc -l
+<span class="p">$</span> du -ch content/posts/*.md | tail -1
+<span class="c"># the publication and collection to fill</span>
+<span class="p">$</span> morse use my-blog posts
+<span class="p">$</span> morse status
+<span class="p">$</span> chmod +x import.sh
+<span class="p">$</span> EPOCHS=30 ./import.sh</pre>
+      </div>
+    </div>
+    <p class="fine">The script is the recipe's, with long lines wrapped to fit; it behaves the same. <code>morse use</code>, <code>status</code>, <code>entry add</code> and their flags checked against morse-cli 0.14.0 with <code>--help</code> on 19 Nov 2026. No transaction was sent for this page.</p>
+  </div>
+</section>
+
+<section class="sec flush" id="rerun">
+  <div class="wrap">
+    <div class="sec__head"><span class="lab">Run it again</span><h2 class="thin">Run it twice.<br><em>Nothing doubles.</em></h2><p class="lead">Entry names are not unique on chain, so a careless second run would publish every post again. The map is what prevents that. If a run stops halfway, run it again and it picks up where it left off.</p></div>
+    <div class="two">
+      <div class="glass runlog" data-tabs>
+        <div class="runlog__bar">
+          <div class="runlog__tabs" role="tablist" aria-label="Three runs of the script">
+            <button class="rtab is-on" type="button" role="tab" id="rt-1" aria-controls="rp-1" aria-selected="true">First run</button>
+            <button class="rtab" type="button" role="tab" id="rt-2" aria-controls="rp-2" aria-selected="false" tabindex="-1">Run again</button>
+            <button class="rtab" type="button" role="tab" id="rt-3" aria-controls="rp-3" aria-selected="false" tabindex="-1">After an edit</button>
+          </div>
+          <span class="pill sample">Example</span>
+        </div>
+        <div role="tabpanel" id="rp-1" aria-labelledby="rt-1" tabindex="0">
+<pre><span class="p">$</span> EPOCHS=30 ./import.sh
+<span class="add">add   hello-world</span>
+<span class="add">add   second-post</span>
+<span class="add">add   third-post</span>
+done, 3 entries in morse-map.json</pre>
+          <p class="runlog__ft"><b>Three files, three entries.</b> The map is created and filled as it goes.</p>
+        </div>
+        <div role="tabpanel" id="rp-2" aria-labelledby="rt-2" tabindex="0" hidden>
+<pre><span class="p">$</span> EPOCHS=30 ./import.sh
+<span class="skip">skip  hello-world (already published)</span>
+<span class="skip">skip  second-post (already published)</span>
+<span class="skip">skip  third-post (already published)</span>
+done, 3 entries in morse-map.json</pre>
+          <p class="runlog__ft"><b>Nothing is signed and nothing is spent.</b> A new file in the folder would be the only line that says add.</p>
+        </div>
+        <div role="tabpanel" id="rp-3" aria-labelledby="rt-3" tabindex="0" hidden>
+<pre><span class="c"># an edited post is a new revision, not a new entry</span>
+<span class="p">$</span> id=$(jq -r '.["second-post"].entryId' \
+    morse-map.json)
+<span class="p">$</span> morse revision publish-direct "$id" \
+    --file content/posts/second-post.md \
+    --epochs 30</pre>
+          <p class="runlog__ft"><b>The script does not notice edits.</b> You push one with this command, and the earlier revision stays on the record.</p>
+        </div>
+      </div>
+      <div class="mapobj">
+        <div class="mapobj__hd"><span>morse-map.json</span><span class="pill lift">Commit this</span></div>
+        <ul class="join" aria-label="Example: each filename and the entry id it was given">
+          <li><span>hello-world</span><i aria-hidden="true"></i><span><small>ENTRY ID</small><b>0</b></span></li>
+          <li><span>second-post</span><i aria-hidden="true"></i><span><small>ENTRY ID</small><b>1</b></span></li>
+          <li><span>third-post</span><i aria-hidden="true"></i><span><small>ENTRY ID</small><b>2</b></span></li>
+        </ul>
+        <p><b>It is the only thing that ties a filename to an entry id.</b> Keep it next to your content. Your site generator or reader app needs it to fetch post bodies from Walrus.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="ci">
+  <div class="wrap">
+    <div class="sec__head"><span class="lab">On every push</span><h2 class="thin">Push to main.<br><em>The new post publishes.</em></h2><p class="lead">A second recipe runs the same script in GitHub Actions. There is no deploy step and no server to keep up: the repo is the source, Sui and Walrus hold what was published, and the map links the two.</p></div>
+    <div class="pipebox">
+      <i aria-hidden="true"><b></b><b></b><b></b></i>
+      <ol class="pipe" aria-label="The CI job, in order">
+        <li><small>TRIGGER</small><b>Push to main</b><span>Only when a post or the map changed.</span></li>
+        <li><small>SET UP</small><b>Install the CLI</b><span>Checkout, Node, then the Morse CLI from npm.</span></li>
+        <li><small>CHECK</small><code>morse --yes -q status</code><span>The same context as your machine, with no prompts.</span></li>
+        <li class="on"><small>PUBLISH</small><code>./import.sh</code><span>Files that are not in the map become entries.</span></li>
+        <li><small>COMMIT</small><b>Save the map</b><span>Committed back, so the next run knows what exists.</span></li>
+      </ol>
+    </div>
+    <div class="two cirow">
+      <div>
+        <span class="envt__hd">FOUR VARIABLES THE CLI READS IN CI</span>
+        <ul class="envt">
+          <li><code>MORSE_PRIVATE_KEY</code><span>The CI wallet's key, as a repository secret. Never written to disk.</span></li>
+          <li><code>MORSE_NETWORK</code><span><code>testnet</code>, so no profile is needed.</span></li>
+          <li><code>MORSE_PUBLICATION</code><span>The publication id, as a repository variable.</span></li>
+          <li><code>MORSE_COLLECTION</code><span><code>posts</code>, the collection to fill.</span></li>
+        </ul>
+      </div>
+      <div class="cikey">
+        <b class="h">Give CI a key of its own. Not yours.</b>
+        <p>Make a separate wallet for the pipeline, fund it with a little SUI and WAL, and issue it a PublisherCap from your owner wallet. If CI ever leaks the key, you revoke one cap and move on. It is the same key model as <a class="ap" href="https://agentpublisher.morsecms.xyz/" data-link="agent-publisher">Morse Agent Publisher</a>, with a pipeline as the author.</p>
+        <p>As written, the job publishes new posts. An edited post is pushed with the revision command above, or with a hash check you add to the script.</p>
+        <div class="btnrow"><a class="btn btn-bone" href="https://docs.morsecms.xyz/publish-from-ci.html" data-cta="ci">The workflow file <span aria-hidden="true">↗</span></a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec flush" id="pitfalls">
+  <div class="wrap">
+    <div class="sec__head"><span class="lab">Pitfalls</span><h2 class="thin">Four ways it goes wrong, <em>and what to do.</em></h2><p class="lead">All four come from the recipe. None of them is hidden by the script, so it is better to meet them here.</p></div>
+    <ul class="haz">
+      <li><b>Running without the map</b><dl><dt>What happens</dt><dd>Entry names are not unique on chain, so every post is published a second time.</dd><dt>What to do</dt><dd class="do">Always keep the map, and commit it.</dd></dl></li>
+      <li><b>Images and other assets</b><dl><dt>What happens</dt><dd>A Markdown file only carries text. Its images are not imported with it.</dd><dt>What to do</dt><dd class="do">Publish each asset as its own entry, or keep assets on a plain host for now.</dd></dl></li>
+      <li><b>Big files</b><dl><dt>What happens</dt><dd>Walrus storage cost scales with size and with the number of epochs.</dd><dt>What to do</dt><dd class="do">Keep posts as Markdown, and strip embedded base64.</dd></dl></li>
+      <li><b>A Testnet reset</b><dl><dt>What happens</dt><dd>Entries and blobs are gone, and the map points at nothing.</dd><dt>What to do</dt><dd class="do">Delete the map and run the script again.</dd></dl></li>
+    </ul>
+  </div>
+</section>
+
+<section class="sec" id="recipe">
+  <div class="wrap two" style="align-items:center">
+    <div class="rcardbox">
+      <span class="glow"></span>
+      <div class="rcard">
+        <div class="rcard__hd"><b>Import a Markdown site</b><span class="pill lift">Docs recipe</span></div>
+        <dl>
+          <div><dt>Time</dt><dd>About 15 minutes, then about 20 for CI</dd></div>
+          <div><dt>Tools</dt><dd>The Morse CLI, bash and jq</dd></div>
+          <div><dt>You bring</dt><dd>A folder of .md files, and a publication with a collection to fill</dd></div>
+          <div><dt>Wallet</dt><dd>SUI for gas and WAL for storage</dd></div>
+          <div><dt>Network</dt><dd>Written for Testnet. Public content also runs on Walrus Mainnet.</dd></div>
+        </dl>
+      </div>
+    </div>
+    <div>
+      <div class="sec__head" style="margin-bottom:0"><span class="lab">What this is</span><h2 class="thin">A recipe.<br><em>Not a migration service.</em></h2><p class="lead">Nobody runs this for you, and nothing is taken from your repo: the import adds a record of every post on Morse and leaves your site as it was. Four things are yours to know.</p></div>
+      <ul class="limits">
+        <li><span class="n">01</span><div><b>You run it.</b><span class="d">The recipe is two docs pages and a script. The Morse CLI is before 1.0.</span></div></li>
+        <li><span class="n">02</span><div><b>Walrus Mainnet is real money.</b><span class="d">Public content works there, but there is no faucet and every write spends SUI and WAL. Do the first import on Testnet.</span></div></li>
+        <li><span class="n">03</span><div><b>Storage is a paid lease.</b><span class="d"><code>EPOCHS</code> sets how long each post is paid for. When a lease ends the content can go offline, while its record on Sui remains.</span></div></li>
+        <li><span class="n">04</span><div><b>Posts go in public.</b><span class="d">The script publishes plain entries. Encryption works out of the box on Testnet only; on Walrus Mainnet it needs your own Seal key-server credentials.</span></div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sec flush" id="family">
+  <div class="wrap">
+    <div class="bands">
+      <a class="glass band" href="https://press.morsecms.xyz/" data-link="press">
+        <span class="brand" style="font-size:22px"><svg aria-hidden="true" width="40" height="40" viewBox="0 0 100 100"><path d="M8 60 V18 H36 V60 H64 V18 H92 V60" fill="none" stroke="#F4F2EC" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="80" width="84" height="14" rx="7" fill="#FF5A36"/></svg><span class="wm"><span>morse</span><em style="color:#FF5A36">press</em></span></span>
+        <div><b>Starting a journal, not moving one?</b><p>Morse Press runs a journal for you with an agent you set up in a form: its sources, its brain and its voice. No folder of Markdown needed.</p></div>
+        <span class="btn btn-ghost">Open Morse Press <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="glass band" href="https://uploader.morsecms.xyz" data-link="uploader">
+        <span class="brand" style="font-size:22px"><svg aria-hidden="true" width="40" height="40" viewBox="0 0 100 100"><path d="M8 72 V30 H36 V72 H64 V30 H92 V72" fill="none" stroke="#F4F2EC" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="wm"><span>morse</span><em style="color:#7D8BFF">uploader</em></span></span>
+        <div><b>Files, not posts?</b><p>Morse Uploader puts files on Walrus from the browser and shares them with a link. It is a separate tool with its own kind of record, not a step of this import.</p></div>
+        <span class="btn btn-ghost">Open Morse Uploader <span aria-hidden="true">↗</span></span>
+      </a>
+    </div>
+    <div class="runs"><span class="lab">Uses</span><span class="pill">morse-cli 0.14</span><span class="pill">bash</span><span class="pill">jq</span><span class="pill">GitHub Actions</span><span class="pill">Sui</span><span class="pill">Walrus</span></div>
+  </div>
+</section>
+
+<section class="sec flush" id="faq">
+  <div class="wrap">
+    <div class="sec__head"><span class="lab">Questions</span><h2 class="thin">Before you <em>run it.</em></h2></div>
+    <div class="faq">
+      <details open><summary>Is Site Importer a tool I install?</summary><p>No. It is a short bash script from the Morse docs that calls the Morse CLI and jq. You copy it into your repo, read it, and run it. Nothing is hosted for you.</p></details>
+      <details><summary>Which site generators does it work with?</summary><p>Any that keeps posts as Markdown files: Hugo, Astro, Jekyll, Obsidian or a plain repo. Morse stores the bytes as they are, so front matter goes in untouched and your existing renderer keeps working.</p></details>
+      <details><summary>Does it change my existing site?</summary><p>No. It reads your folder and writes one new file, the map. Your posts, your generator and your hosting stay as they are.</p></details>
+      <details><summary>What about images?</summary><p>They are not imported with the post. A Markdown file only carries text, so publish each asset as its own entry or keep assets on a plain host for now.</p></details>
+      <details><summary>What does an import cost?</summary><p>On Testnet, faucet tokens. On Walrus Mainnet, real SUI for gas and WAL for storage: Walrus charges per blob per epoch, so the total size and the epoch count are what matter. The recipe starts with a dry run that counts both before you spend anything.</p></details>
+      <details><summary>How long does an imported post stay readable?</summary><p>As long as its storage is paid for. The lease is counted in epochs and set by <code>EPOCHS</code> when you run the script. When a lease ends the content can go offline; the record of what was published and when remains on Sui.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <span class="glow"></span>
+  <span class="gtile l" aria-hidden="true"><svg aria-hidden="true" width="64" height="64" viewBox="0 0 100 100"><path d="M8 60 V18 H36 V60 H64 V18 H92 V60" fill="none" stroke="#F4F2EC" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="80" width="24" height="14" rx="7" fill="#FFE62E"/><rect x="38" y="80" width="24" height="14" rx="7" fill="#FFE62E"/><rect x="68" y="80" width="24" height="14" rx="7" fill="#FFE62E"/></svg></span><span class="gtile r" aria-hidden="true"><svg aria-hidden="true" width="52" height="52" viewBox="0 0 100 100"><path d="M8 60 V18 H36 V60 H64 V18 H92 V60" fill="none" stroke="#F4F2EC" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="80" width="24" height="14" rx="7" fill="#FFE62E"/><rect x="38" y="80" width="24" height="14" rx="7" fill="#FFE62E"/><rect x="68" y="80" width="24" height="14" rx="7" fill="#FFE62E"/></svg></span>
+  <div class="wrap">
+    <span class="lab">Start</span>
+    <h2 class="thin" style="margin-top:18px">Bring the folder.<br><em>Keep the repo.</em></h2>
+    <div class="hero__cta"><a class="btn btn-acc" href="https://docs.morsecms.xyz/import-a-site.html" data-cta="final">Read the recipe <span aria-hidden="true">↗</span></a><a class="btn btn-ghost" href="#script">See the script</a></div>
+  </div>
+</section>
+</main>
+
+<footer class="foot"><div class="wrap">
+  <a class="brand" href="#top"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 100 100"><path d="M8 60 V18 H36 V60 H64 V18 H92 V60" fill="none" stroke="#F4F2EC" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="80" width="24" height="14" rx="7" fill="#FFE62E"/><rect x="38" y="80" width="24" height="14" rx="7" fill="#FFE62E"/><rect x="68" y="80" width="24" height="14" rx="7" fill="#FFE62E"/></svg><span class="wm"><span>morse</span><em>site importer</em></span></a>
+  <nav class="foot__links" aria-label="Footer"><a href="https://www.morsecms.xyz/">Morse kit</a><a href="https://press.morsecms.xyz/">Press</a><a href="https://uploader.morsecms.xyz">Uploader</a><a href="https://receipts.morsecms.xyz/">Receipts</a><a href="https://agentpublisher.morsecms.xyz/">Agent Publisher</a><a href="https://docs.morsecms.xyz/">Docs</a><a href="https://github.com/arcadiasystems/morse-dcms">GitHub</a></nav>
+  <p>Morse Site Importer: a recipe for bringing a Markdown site in. Part of Morse, built by Arcadia Systems with a grant from the Walrus Foundation. © 2026 · Open source, MIT licence</p>
+</div></footer>
+
+<script>
+(function(){
+  /* Tabs: one tab stop, arrow keys move and select, Home and End jump to the ends.
+     The same behaviour as useTabs in src/base. Every panel stays in the markup. */
+  document.querySelectorAll('[data-tabs]').forEach(function(box){
+    var tabs=[].slice.call(box.querySelectorAll('[role="tab"]'));
+    function select(tab,focus){
+      tabs.forEach(function(t){
+        var on=t===tab;
+        t.classList.toggle('is-on',on);
+        t.setAttribute('aria-selected',on?'true':'false');
+        t.tabIndex=on?0:-1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden=!on;
+      });
+      if(focus){tab.focus();}
+    }
+    tabs.forEach(function(tab,i){
+      tab.addEventListener('click',function(){select(tab,false);});
+      tab.addEventListener('keydown',function(e){
+        var n=tabs.length,to={ArrowRight:(i+1)%n,ArrowDown:(i+1)%n,ArrowLeft:(i-1+n)%n,ArrowUp:(i-1+n)%n,Home:0,End:n-1}[e.key];
+        if(to===undefined){return;}
+        e.preventDefault();select(tabs[to],true);
+      });
+    });
+  });
+  /* Copy: the text of the visible code block, without the note numbers. */
+  document.querySelectorAll('[data-copy]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var scope=btn.closest('[data-tabs]')||btn.closest('[data-copybox]');
+      var pre=scope.querySelector('[role="tabpanel"]:not([hidden]) pre')||scope.querySelector('pre');
+      var copy=pre.cloneNode(true);
+      copy.querySelectorAll('sup,.nc').forEach(function(n){n.remove();});
+      var text=copy.textContent.replace(/^\n+/,'').replace(/[ \t]+$/gm,'')+'\n';
+      if(!navigator.clipboard){btn.textContent='Select and copy';return;}
+      navigator.clipboard.writeText(text).then(function(){
+        btn.textContent='Copied';setTimeout(function(){btn.textContent='Copy';},1600);
+      },function(){btn.textContent='Select and copy';});
+    });
+  });
+})();
+</script>
+</body>
+</html>
